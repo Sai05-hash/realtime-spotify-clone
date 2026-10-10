@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMusicStore } from "@/stores/useMusicStore";
+import EditAlbumDialog from "./EditAlbumDialog";
 import { Calendar, Music, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -45,6 +46,7 @@ const AlbumsTable = () => {
 						</TableCell>
 						<TableCell className='text-right'>
 							<div className='flex gap-2 justify-end'>
+								<EditAlbumDialog album={album} />
 								<Button
 									variant='ghost'
 									size='sm'

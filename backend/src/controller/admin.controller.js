@@ -52,6 +52,52 @@ export const createSong = async (req, res, next) => {
 	}
 };
 
+export const updateSong = async (req, res, next) => {
+	try {
+		const { id } = req.params;
+		const { title, artist, duration, albumId } = req.body;
+
+		const song = await Song.findById(id);
+		if (!song) {
+			return res.status(404).json({ message: "Song not found" });
+		}
+
+		if (title !== undefined && title !== "") song.title = title;
+		if (artist !== undefined && artist !== "") song.artist = artist;
+		if (duration !== undefined && duration !== "") song.duration = Number(duration);
+
+		// optional new files
+		if (req.files && req.files.imageFile) {
+			song.imageUrl = await uploadToCloudinary(req.files.imageFile);
+		}
+		if (req.files && req.files.audioFile) {
+			song.audioUrl = await uploadToCloudinary(req.files.audioFile);
+		}
+
+		// album change
+		if (albumId !== undefined) {
+			const newAlbumId = albumId && albumId !== "none" ? albumId : null;
+			const oldAlbumId = song.albumId ? song.albumId.toString() : null;
+
+			if (oldAlbumId !== newAlbumId) {
+				if (oldAlbumId) {
+					await Album.findByIdAndUpdate(oldAlbumId, { $pull: { songs: song._id } });
+				}
+				if (newAlbumId) {
+					await Album.findByIdAndUpdate(newAlbumId, { $push: { songs: song._id } });
+				}
+				song.albumId = newAlbumId;
+			}
+		}
+
+		await song.save();
+		res.status(200).json(song);
+	} catch (error) {
+		console.log("Error in updateSong", error);
+		next(error);
+	}
+};
+
 export const deleteSong = async (req, res, next) => {
 	try {
 		const { id } = req.params;
@@ -93,6 +139,32 @@ export const createAlbum = async (req, res, next) => {
 		res.status(201).json(album);
 	} catch (error) {
 		console.log("Error in createAlbum", error);
+		next(error);
+	}
+};
+
+export const updateAlbum = async (req, res, next) => {
+	try {
+		const { id } = req.params;
+		const { title, artist, releaseYear } = req.body;
+
+		const album = await Album.findById(id);
+		if (!album) {
+			return res.status(404).json({ message: "Album not found" });
+		}
+
+		if (title !== undefined && title !== "") album.title = title;
+		if (artist !== undefined && artist !== "") album.artist = artist;
+		if (releaseYear !== undefined && releaseYear !== "") album.releaseYear = Number(releaseYear);
+
+		if (req.files && req.files.imageFile) {
+			album.imageUrl = await uploadToCloudinary(req.files.imageFile);
+		}
+
+		await album.save();
+		res.status(200).json(album);
+	} catch (error) {
+		console.log("Error in updateAlbum", error);
 		next(error);
 	}
 };

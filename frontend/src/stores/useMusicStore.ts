@@ -23,6 +23,8 @@ interface MusicStore {
 	fetchSongs: () => Promise<void>;
 	deleteSong: (id: string) => Promise<void>;
 	deleteAlbum: (id: string) => Promise<void>;
+	updateSong: (id: string, formData: FormData) => Promise<boolean>;
+	updateAlbum: (id: string, formData: FormData) => Promise<boolean>;
 }
 
 export const useMusicStore = create<MusicStore>((set) => ({
@@ -55,6 +57,40 @@ export const useMusicStore = create<MusicStore>((set) => ({
 			toast.error("Error deleting song");
 		} finally {
 			set({ isLoading: false });
+		}
+	},
+
+	updateSong: async (id, formData) => {
+		try {
+			const response = await axiosInstance.put(`/admin/songs/${id}`, formData, {
+				headers: { "Content-Type": "multipart/form-data" },
+			});
+			set((state) => ({
+				songs: state.songs.map((song) => (song._id === id ? { ...song, ...response.data } : song)),
+			}));
+			toast.success("Song updated successfully");
+			return true;
+		} catch (error: any) {
+			console.log("Error in updateSong", error);
+			toast.error("Failed to update song: " + error.message);
+			return false;
+		}
+	},
+
+	updateAlbum: async (id, formData) => {
+		try {
+			const response = await axiosInstance.put(`/admin/albums/${id}`, formData, {
+				headers: { "Content-Type": "multipart/form-data" },
+			});
+			set((state) => ({
+				albums: state.albums.map((album) => (album._id === id ? { ...album, ...response.data } : album)),
+			}));
+			toast.success("Album updated successfully");
+			return true;
+		} catch (error: any) {
+			console.log("Error in updateAlbum", error);
+			toast.error("Failed to update album: " + error.message);
+			return false;
 		}
 	},
 
