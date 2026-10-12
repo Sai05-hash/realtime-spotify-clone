@@ -6,18 +6,19 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
+	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMusicStore } from "@/stores/useMusicStore";
 import { Song } from "@/types";
 import { Pencil } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const EditSongDialog = ({ song }: { song: Song }) => {
 	const { albums, updateSong } = useMusicStore();
 	const [open, setOpen] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
 
 	const [form, setForm] = useState({
 		title: song.title,
@@ -30,6 +31,14 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 
 	const imageInputRef = useRef<HTMLInputElement>(null);
 	const audioInputRef = useRef<HTMLInputElement>(null);
+
+	// create the preview URL once per selected file and clean it up
+	const previewUrl = useMemo(() => (imageFile ? URL.createObjectURL(imageFile) : null), [imageFile]);
+	useEffect(() => {
+		return () => {
+			if (previewUrl) URL.revokeObjectURL(previewUrl);
+		};
+	}, [previewUrl]);
 
 	const handleOpenChange = (value: boolean) => {
 		if (value) {
@@ -47,7 +56,7 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 	};
 
 	const handleSubmit = async () => {
-		setIsLoading(true);
+		setIsSaving(true);
 		const formData = new FormData();
 		formData.append("title", form.title);
 		formData.append("artist", form.artist);
@@ -57,20 +66,21 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 		if (audioFile) formData.append("audioFile", audioFile);
 
 		const ok = await updateSong(song._id, formData);
-		setIsLoading(false);
+		setIsSaving(false);
 		if (ok) setOpen(false);
 	};
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<Button
-				variant={"ghost"}
-				size={"sm"}
-				className='text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'
-				onClick={() => handleOpenChange(true)}
-			>
-				<Pencil className='size-4' />
-			</Button>
+			<DialogTrigger asChild>
+				<Button
+					variant={"ghost"}
+					size={"sm"}
+					className='text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'
+				>
+					<Pencil className='size-4' />
+				</Button>
+			</DialogTrigger>
 
 			<DialogContent className='bg-zinc-900 border-zinc-700 max-h-[80vh] overflow-auto'>
 				<DialogHeader>
@@ -98,11 +108,16 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 						<label className='text-sm font-medium'>Image</label>
 						<div className='flex items-center gap-3'>
 							<img
-								src={imageFile ? URL.createObjectURL(imageFile) : song.imageUrl}
+								src={previewUrl || song.imageUrl}
 								alt={song.title}
 								className='size-16 rounded object-cover'
 							/>
-							<Button variant='outline' onClick={() => imageInputRef.current?.click()} className='flex-1'>
+							<Button
+								type='button'
+								variant='outline'
+								onClick={() => imageInputRef.current?.click()}
+								className='flex-1'
+							>
 								{imageFile ? imageFile.name.slice(0, 25) : "Replace image"}
 							</Button>
 						</div>
@@ -110,7 +125,12 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 
 					<div className='space-y-2'>
 						<label className='text-sm font-medium'>Audio</label>
-						<Button variant='outline' onClick={() => audioInputRef.current?.click()} className='w-full'>
+						<Button
+							type='button'
+							variant='outline'
+							onClick={() => audioInputRef.current?.click()}
+							className='w-full'
+						>
 							{audioFile ? audioFile.name.slice(0, 25) : "Replace audio (optional)"}
 						</Button>
 					</div>
@@ -163,15 +183,15 @@ const EditSongDialog = ({ song }: { song: Song }) => {
 				</div>
 
 				<DialogFooter>
-					<Button variant='outline' onClick={() => setOpen(false)} disabled={isLoading}>
+					<Button variant='outline' onClick={() => setOpen(false)} disabled={isSaving}>
 						Cancel
 					</Button>
 					<Button
 						onClick={handleSubmit}
-						disabled={isLoading || !form.title || !form.artist}
+						disabled={isSaving || !form.title || !form.artist}
 						className='bg-emerald-500 hover:bg-emerald-600 text-black'
 					>
-						{isLoading ? "Saving..." : "Save Changes"}
+						{isSaving ? "Saving..." : "Save Changes"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

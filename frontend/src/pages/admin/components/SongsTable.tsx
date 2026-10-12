@@ -7,7 +7,9 @@ import EditSongDialog from "./EditSongDialog";
 const SongsTable = () => {
 	const { songs, isLoading, error, deleteSong } = useMusicStore();
 
-	if (isLoading) {
+	// Only show the full-page loader on the very first load.
+	// Otherwise the table (and any open dialog) would unmount on every request.
+	if (isLoading && songs.length === 0) {
 		return (
 			<div className='flex items-center justify-center py-8'>
 				<div className='text-zinc-400'>Loading songs...</div>
@@ -15,7 +17,7 @@ const SongsTable = () => {
 		);
 	}
 
-	if (error) {
+	if (error && songs.length === 0) {
 		return (
 			<div className='flex items-center justify-center py-8'>
 				<div className='text-red-400'>{error}</div>
@@ -46,7 +48,7 @@ const SongsTable = () => {
 						<TableCell>
 							<span className='inline-flex items-center gap-1 text-zinc-400'>
 								<Calendar className='h-4 w-4' />
-								{song.createdAt.split("T")[0]}
+								{song.createdAt?.split("T")[0]}
 							</span>
 						</TableCell>
 
